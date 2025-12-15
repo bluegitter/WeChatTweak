@@ -7,6 +7,18 @@
 import Foundation
 import Dispatch
 import ArgumentParser
+import WeChatTweakObjC
+
+@_cdecl("WechatTweakEntry")
+public func WechatTweakEntry() {
+    // 现有初始化逻辑...
+    print("[WeChatTweak] WechatTweakEntry invoked, scheduling Alfred listener...")
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        print("[WeChatTweak] Calling AlfredManager.startListener()")
+        AlfredManager.sharedInstance().startListener()
+    }
+}
 
 // MARK: Versions
 extension Tweak {

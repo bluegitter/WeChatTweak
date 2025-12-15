@@ -1,6 +1,14 @@
 {
-  "originHash" : "fc7f739a75c4c771c736e9ff1f765bbd53fb1f3c5beaa621fbc867f0d71964c4",
   "pins" : [
+    {
+      "identity" : "gcdwebserver",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/readium/GCDWebServer.git",
+      "state" : {
+        "revision" : "50caf05df2c70edadce143747c96fcd877fe05bb",
+        "version" : "3.7.5"
+      }
+    },
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
@@ -11,5 +19,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }
