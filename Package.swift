@@ -8,11 +8,16 @@ let package = Package(
         .macOS(.v12)
     ],
     products: [
-        .executable(
+        // 注入用动态库
+        .library(
             name: "wechattweak",
-            targets: [
-                "WeChatTweak"
-            ]
+            type: .dynamic,
+            targets: ["WeChatTweak"]
+        ),
+        // 命令行工具（用于 patch/resign/version）
+        .executable(
+            name: "wechattweak_cli",
+            targets: ["WeChatTweakCLI"]
         )
     ],
     dependencies: [
@@ -20,22 +25,32 @@ let package = Package(
         .package(url: "https://github.com/readium/GCDWebServer.git", from: "3.5.5"),
     ],
     targets: [
-            .target(
-                name: "WeChatTweakObjC",
-                dependencies: [
-                    .product(name: "GCDWebServer", package: "GCDWebServer"),
-                ],
-                path: "Sources/WeChatTweakObjC",
-                publicHeadersPath: "."   
-            ),
-            .executableTarget(
-                name: "WeChatTweak",
-                dependencies: [
-                    "WeChatTweakObjC",
-                    .product(name: "ArgumentParser", package: "swift-argument-parser")
-                ],
-                path: "Sources/WeChatTweak"
-            )
-            
-        ]
+        .target(
+            name: "WeChatTweakObjC",
+            dependencies: [
+                .product(name: "GCDWebServer", package: "GCDWebServer"),
+            ],
+            path: "Sources/WeChatTweakObjC",
+            publicHeadersPath: "."
+        ),
+
+        // dylib target：不要包含 main.swift / @main / ArgumentParser 主程序
+        .target(
+            name: "WeChatTweak",
+            dependencies: [
+                "WeChatTweakObjC"
+            ],
+            path: "Sources/WeChatTweak"
+        ),
+
+        // CLI target：把原来的 ArgumentParser + Tweak.main() 全部放这里
+        .executableTarget(
+            name: "WeChatTweakCLI",
+            dependencies: [
+                "WeChatTweak",
+                .product(name: "ArgumentParser", package: "swift-argument-parser")
+            ],
+            path: "Sources/WeChatTweakCLI"
+        )
+    ]
 )

@@ -75,14 +75,20 @@
 
         NSString *keyword = [request.query[@"keyword"] lowercaseString] ?: @"";
 
+        NSLog(@"[WeChatTweak][Alfred] search request keyword=%@", keyword);
+
         // 从微信内部取联系人列表（文章里的那段代码）
         NSArray<WCContactData *> *contacts = ({
             MMServiceCenter *serviceCenter = [objc_getClass("MMServiceCenter") defaultCenter];
             ContactStorage *contactStorage = [serviceCenter getService:objc_getClass("ContactStorage")];
             GroupStorage *groupStorage = [serviceCenter getService:objc_getClass("GroupStorage")];
+            NSArray<WCContactData *> *friends = [contactStorage GetAllFriendContacts];
+            NSArray<WCContactData *> *groups = [groupStorage GetAllGroups];
             NSMutableArray<WCContactData *> *array = [NSMutableArray array];
-            [array addObjectsFromArray:[contactStorage GetAllFriendContacts]];
-            [array addObjectsFromArray:[groupStorage GetAllGroups]];
+            [array addObjectsFromArray:friends ?: @[]];
+            [array addObjectsFromArray:groups ?: @[]];
+            NSLog(@"[WeChatTweak][Alfred] fetched contacts friends=%lu groups=%lu total=%lu",
+                  (unsigned long)friends.count, (unsigned long)groups.count, (unsigned long)array.count);
             array;
         });
 
@@ -102,7 +108,7 @@
                 (containsNickName || containsUsername || containsAliasName ||
                  containsRemark || containsNickNamePinyin || containsRemarkPinyin ||
                  matchRemarkShortPinyin)) {
-
+                NSLog(@"[WeChatTweak][Alfred] match nick=%@ remark=%@ username=%@", contact.m_nsNickName, contact.m_nsRemark, contact.m_nsUsrName);
                 [results addObject:@{
                     @"m_nsNickName": contact.m_nsNickName ?: @"",
                     @"m_nsRemark": contact.m_nsRemark ?: @"",
@@ -111,6 +117,7 @@
             }
         }
 
+        NSLog(@"[WeChatTweak][Alfred] search result count=%lu", (unsigned long)results.count);
         return [GCDWebServerDataResponse responseWithJSONObject:results];
     }];
 

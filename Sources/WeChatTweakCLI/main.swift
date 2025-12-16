@@ -1,7 +1,8 @@
 //
 //  main.swift
+//  WeChatTweakCLI
 //
-//  Created by Sunny Young.
+//  Command-line interface for WeChatTweak
 //
 
 import Foundation
@@ -9,21 +10,13 @@ import Dispatch
 import ArgumentParser
 import WeChatTweakObjC
 
-@_cdecl("WechatTweakEntry")
-public func WechatTweakEntry() {
-    // 现有初始化逻辑...
-    print("[WeChatTweak] WechatTweakEntry invoked, scheduling Alfred listener...")
+// MARK: - Versions
 
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-        print("[WeChatTweak] Calling AlfredManager.startListener()")
-        AlfredManager.sharedInstance().startListener()
-    }
-}
-
-// MARK: Versions
 extension Tweak {
     struct Versions: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "List all supported WeChat versions")
+        static let configuration = CommandConfiguration(
+            abstract: "List all supported WeChat versions"
+        )
 
         @OptionGroup
         var options: Tweak.Options
@@ -31,17 +24,24 @@ extension Tweak {
         mutating func run() async throws {
             print("------ Current version ------")
             print(try await Command.version(app: options.app) ?? "unknown")
+
             print("------ Supported versions ------")
-            try await Config.load(url: options.config).forEach({ print($0.version) })
+            try await Config.load(url: options.config).forEach {
+                print($0.version)
+            }
+
             Darwin.exit(EXIT_SUCCESS)
         }
     }
 }
 
-// MARK: Patch
+// MARK: - Patch
+
 extension Tweak {
     struct Patch: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Patch WeChat.app")
+        static let configuration = CommandConfiguration(
+            abstract: "Patch WeChat.app"
+        )
 
         @OptionGroup
         var options: Tweak.Options
@@ -52,7 +52,9 @@ extension Tweak {
             print("WeChat version: \(version ?? "unknown")")
 
             print("------ Config ------")
-            guard let config = (try await Config.load(url: options.config)).first(where: { $0.version == version }) else {
+            guard let config = try await Config
+                .load(url: options.config)
+                .first(where: { $0.version == version }) else {
                 throw Error.unsupportedVersion
             }
             print("Matched config: \(config)")
@@ -62,22 +64,24 @@ extension Tweak {
                 app: options.app,
                 config: config
             )
-            print("Done!")
+            print("Patch done!")
 
             print("------ Resign ------")
             try await Command.resign(
                 app: options.app
             )
-            print("Done!")
+            print("Resign done!")
 
             Darwin.exit(EXIT_SUCCESS)
         }
     }
-
 }
 
-// MARK: Tweak
+// MARK: - Root Command
+
 struct Tweak: AsyncParsableCommand {
+
+    // MARK: Errors
     enum Error: LocalizedError {
         case invalidApp
         case invalidConfig
@@ -98,7 +102,9 @@ struct Tweak: AsyncParsableCommand {
         }
     }
 
+    // MARK: Options
     struct Options: ParsableArguments {
+
         @Option(
             name: .shortAndLong,
             help: "Path of WeChat.app",
@@ -109,25 +115,30 @@ struct Tweak: AsyncParsableCommand {
                 return URL(fileURLWithPath: $0)
             }
         )
-        var app: URL = URL(fileURLWithPath: "/Applications/WeChat.app", isDirectory: true)
+        var app: URL = URL(
+            fileURLWithPath: "/Applications/WeChat.app",
+            isDirectory: true
+        )
 
         @Option(
             name: .shortAndLong,
-            help: "Local path or Remote URL of config.json",
+            help: "Local path or remote URL of config.json",
             transform: {
                 if FileManager.default.fileExists(atPath: $0) {
                     return URL(fileURLWithPath: $0)
-                } else {
-                    guard let url = URL(string: $0) else {
-                        throw Error.invalidConfig
-                    }
+                } else if let url = URL(string: $0) {
                     return url
+                } else {
+                    throw Error.invalidConfig
                 }
             }
         )
-        var config: URL = URL(string:"https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/refs/heads/master/config.json")!
+        var config: URL = URL(
+            string: "https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/refs/heads/master/config.json"
+        )!
     }
 
+    // MARK: Configuration
     static let configuration = CommandConfiguration(
         commandName: "wechattweak",
         abstract: "A command-line tool for tweaking WeChat.",
@@ -143,8 +154,10 @@ struct Tweak: AsyncParsableCommand {
     }
 }
 
+// MARK: - Program Entry
+
 Task {
     await Tweak.main()
 }
 
-Dispatch.dispatchMain()
+dispatchMain()
